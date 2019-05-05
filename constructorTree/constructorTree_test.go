@@ -20,5 +20,7 @@ func getConstructors() []reflect.Type {
 	functions := []reflect.Type{}
 	functions = append(functions, reflect.TypeOf(card.NewAction))
 	functions = append(functions, reflect.TypeOf(card.NewCost))
+	functions = append(functions, reflect.TypeOf(card.NewEffect))
+	functions = append(functions, reflect.TypeOf(card.NewZoneChange))
 	return functions
 }

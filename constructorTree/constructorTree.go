@@ -8,27 +8,40 @@ func GetConstructorTree(headConstructor reflect.Type, constructors []reflect.Typ
 
 type funcNode struct {
 	Signature string
-	InputFunctions [][]funcNode
+	InputConstructors [][]funcNode
 }
 
 func newFuncNode(f reflect.Type, constructors []reflect.Type) funcNode {
-	childs := searchForChilds(f, constructors)
-	n := f.String()
-	return funcNode{n, childs}
+	childs := searchForInputConstructors(f, constructors)
+	signature := f.String()
+	return funcNode{signature, childs}
 }
 
-func searchForChilds(f reflect.Type, constructors []reflect.Type) [][]funcNode {
-	childs := [][]funcNode{}
+func searchForInputConstructors(f reflect.Type, constructors []reflect.Type) [][]funcNode {
+	inputConstructors := [][]funcNode{}
 	for i := 0; i < f.NumIn(); i++ {
 		fIn := f.In(i)
 		inChilds := []funcNode{}
 		for _, function := range constructors {
-			if (fIn == function.Out(0)) {
+			if (canConstruct(function, fIn)){
 				inChilds = append(inChilds, newFuncNode(function, constructors))
 			}
 		}
-		childs = append(childs, inChilds)
+		inputConstructors = append(inputConstructors, inChilds)
 	}
-	return childs
+	return inputConstructors
+}
+
+func canConstruct(function reflect.Type, t reflect.Type) bool {
+		constructs := false
+		switch t.Kind() {
+		case reflect.Interface:
+			constructs = function.Out(0).Implements(t)
+		case reflect.Slice:
+			constructs = function.Out(0).Implements(t.Elem())
+		default:
+			constructs = false
+		}
+		return constructs
 }
 
