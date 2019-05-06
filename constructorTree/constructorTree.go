@@ -1,6 +1,7 @@
 package constructorTree
 
 import "reflect"
+import "fmt"
 
 func GetConstructorTree(headConstructor reflect.Type, constructors []reflect.Type) funcNode {
 	return newFuncNode(headConstructor, constructors)
@@ -12,36 +13,44 @@ type funcNode struct {
 }
 
 func newFuncNode(f reflect.Type, constructors []reflect.Type) funcNode {
-	childs := searchForInputConstructors(f, constructors)
+	childs := [][]funcNode{}
+	for i := 0; i < f.NumIn(); i++ {
+		childs = append(childs, searchForParameter(f.In(i), constructors))
+	}
 	signature := f.String()
 	return funcNode{signature, childs}
 }
 
-func searchForInputConstructors(f reflect.Type, constructors []reflect.Type) [][]funcNode {
-	inputConstructors := [][]funcNode{}
-	for i := 0; i < f.NumIn(); i++ {
-		fIn := f.In(i)
-		inChilds := []funcNode{}
-		for _, function := range constructors {
-			if (canConstruct(function, fIn)){
-				inChilds = append(inChilds, newFuncNode(function, constructors))
-			}
-		}
-		inputConstructors = append(inputConstructors, inChilds)
+func searchForParameter(parameterType reflect.Type, constructors []reflect.Type) []funcNode {
+	parameter := []funcNode{}
+	searchType := parameterType
+	switch parameterType.Kind() {
+	case reflect.Slice:
+		searchType = parameterType.Elem()
+	default:
+		searchType = parameterType
 	}
-	return inputConstructors
+	parameter = append(parameter, searchForParameterConstructors(searchType, constructors)...)
+	return parameter
 }
 
-func canConstruct(function reflect.Type, t reflect.Type) bool {
-		constructs := false
-		switch t.Kind() {
-		case reflect.Interface:
-			constructs = function.Out(0).Implements(t)
-		case reflect.Slice:
-			constructs = function.Out(0).Implements(t.Elem())
+func searchForParameterConstructors(parameterType reflect.Type, constructors []reflect.Type) []funcNode {
+	inChilds := []funcNode{}
+	for _, function := range constructors {
+		switch function.Kind() {
+		case reflect.Func:
+			if (function.Out(0).Implements(parameterType)){
+				inChilds = append(inChilds, newFuncNode(function, constructors))
+			}
+		case reflect.Int:
+			if (function.Implements(parameterType)){
+				inChilds = append(inChilds, funcNode{function.String(), [][]funcNode{}})
+			}
 		default:
-			constructs = false
+			fmt.Println(function.Kind())
 		}
-		return constructs
+	}
+	return inChilds
 }
+
 
