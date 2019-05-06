@@ -8,10 +8,11 @@ import "testing"
 
 
 func TestConstructorTree(t *testing.T) {
-	c := GetConstructorTree(reflect.TypeOf(card.NewAction), getConstructors())
-	bytes, err := json.Marshal(c)
+	treeBuilder := NewTreeBuilder(getConstructors())
+	tree := treeBuilder.BuildTreeFor(reflect.TypeOf(card.NewAction))
+	bytes, err := json.Marshal(tree)
     if err != nil {
-        fmt.Println("Can't serialize", c)
+        fmt.Println("Can't serialize", tree)
     }
     fmt.Println(string(bytes))
 }

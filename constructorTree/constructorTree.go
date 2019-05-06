@@ -3,8 +3,21 @@ package constructorTree
 import "reflect"
 import "fmt"
 
-func GetConstructorTree(headConstructor reflect.Type, constructors []reflect.Type) funcNode {
-	return newFuncNode(headConstructor, constructors)
+type TreeBuilder interface {
+	BuildTreeFor(reflect.Type) funcNode
+}
+
+func NewTreeBuilder(constructors []reflect.Type) TreeBuilder {
+	return treeBuilder{constructors, funcNode{}}
+}
+
+type treeBuilder struct {
+	constructors []reflect.Type
+	tree funcNode
+}
+
+func (builder treeBuilder) BuildTreeFor(headConstructor reflect.Type) funcNode {
+	return builder.newFuncNode(headConstructor)
 }
 
 type funcNode struct {
@@ -12,16 +25,16 @@ type funcNode struct {
 	InputConstructors [][]funcNode
 }
 
-func newFuncNode(f reflect.Type, constructors []reflect.Type) funcNode {
+func (builder treeBuilder) newFuncNode(f reflect.Type) funcNode {
 	childs := [][]funcNode{}
 	for i := 0; i < f.NumIn(); i++ {
-		childs = append(childs, searchForParameter(f.In(i), constructors))
+		childs = append(childs, builder.searchForParameter(f.In(i)))
 	}
 	signature := f.String()
 	return funcNode{signature, childs}
 }
 
-func searchForParameter(parameterType reflect.Type, constructors []reflect.Type) []funcNode {
+func (builder treeBuilder) searchForParameter(parameterType reflect.Type) []funcNode {
 	parameter := []funcNode{}
 	searchType := parameterType
 	switch parameterType.Kind() {
@@ -30,17 +43,17 @@ func searchForParameter(parameterType reflect.Type, constructors []reflect.Type)
 	default:
 		searchType = parameterType
 	}
-	parameter = append(parameter, searchForParameterConstructors(searchType, constructors)...)
+	parameter = append(parameter, builder.searchForParameterConstructors(searchType)...)
 	return parameter
 }
 
-func searchForParameterConstructors(parameterType reflect.Type, constructors []reflect.Type) []funcNode {
+func (builder treeBuilder) searchForParameterConstructors(parameterType reflect.Type) []funcNode {
 	inChilds := []funcNode{}
-	for _, function := range constructors {
+	for _, function := range builder.constructors {
 		switch function.Kind() {
 		case reflect.Func:
 			if (function.Out(0).Implements(parameterType)){
-				inChilds = append(inChilds, newFuncNode(function, constructors))
+				inChilds = append(inChilds, builder.newFuncNode(function))
 			}
 		case reflect.Int:
 			if (function.Implements(parameterType)){
