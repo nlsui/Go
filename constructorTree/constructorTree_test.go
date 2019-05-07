@@ -8,7 +8,7 @@ import "testing"
 
 
 func TestConstructorTree(t *testing.T) {
-	treeBuilder := NewTreeBuilder(getConstructors())
+	treeBuilder := NewTreeBuilder(getConstructors(), getConstants())
 	tree := treeBuilder.BuildTreeFor(reflect.TypeOf(card.NewAction))
 	bytes, err := json.Marshal(tree)
     if err != nil {
@@ -23,6 +23,11 @@ func getConstructors() []reflect.Type {
 	functions = append(functions, reflect.TypeOf(card.NewCost))
 	functions = append(functions, reflect.TypeOf(card.NewEffect))
 	functions = append(functions, reflect.TypeOf(card.NewZoneChange))
-	functions = append(functions, reflect.TypeOf(card.MANA))
 	return functions
+}
+
+func getConstants() map[string]reflect.Type {
+	m := make(map[string]reflect.Type)
+	m["MANA"] = reflect.TypeOf(card.MANA)
+	return m
 }

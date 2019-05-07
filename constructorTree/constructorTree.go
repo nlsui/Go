@@ -7,12 +7,13 @@ type TreeBuilder interface {
 	BuildTreeFor(reflect.Type) funcNode
 }
 
-func NewTreeBuilder(constructors []reflect.Type) TreeBuilder {
-	return treeBuilder{constructors, funcNode{}}
+func NewTreeBuilder(constructors []reflect.Type, constants map[string]reflect.Type) TreeBuilder {
+	return treeBuilder{constructors, constants, funcNode{}}
 }
 
 type treeBuilder struct {
 	constructors []reflect.Type
+	constants map[string]reflect.Type
 	tree funcNode
 }
 
@@ -44,6 +45,7 @@ func (builder treeBuilder) searchForParameter(parameterType reflect.Type) []func
 		searchType = parameterType
 	}
 	parameter = append(parameter, builder.searchForParameterConstructors(searchType)...)
+	parameter = append(parameter, builder.searchForParameterConstants(searchType)...)
 	return parameter
 }
 
@@ -61,6 +63,16 @@ func (builder treeBuilder) searchForParameterConstructors(parameterType reflect.
 			}
 		default:
 			fmt.Println(function.Kind())
+		}
+	}
+	return inChilds
+}
+
+func (builder treeBuilder) searchForParameterConstants(parameterType reflect.Type) []funcNode {
+	inChilds := []funcNode{}
+	for constantName, constantType := range builder.constants {
+		if (constantType.Implements(parameterType)) {
+			inChilds = append(inChilds, funcNode{constantName, [][]funcNode{}})
 		}
 	}
 	return inChilds
